@@ -1,4 +1,5 @@
 import socket as skt
+import getpass
 import os
 import sys
 import time
@@ -25,18 +26,37 @@ def decrypt(key,cdata):
 
 if len(sys.argv) == 3:
         port = int(sys.argv[1])
-        auth = sys.argv[2]
-        up = auth.split(':')
-        user = up[0]
-        passwd = up[1]
+#        auth = sys.argv[2]
+#        up = auth.split(':')
+        user = sys.argv[2]
+#        passwd = up[1]
 else:
-        print 'Need to specify   <listenport> <user:pass>  '
+        print 'Need to specify   <listenport> <user> '
         sys.exit()
+
+passwd = getpass.getpass()
 s = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
 s.setsockopt(skt.SOL_SOCKET, skt.SO_REUSEADDR, 1)
 s.bind(('0.0.0.0',port)) 
 s.listen(10)
 conn,addr = s.accept()
+
+helo = 'HELOPROTOCOL'
+lh = len(helo)
+cauth = conn.recv(128) 
+auth = decrypt(user + passwd, cauth) 
+
+if auth[0:lh] != helo:
+	print 'Invalid username from', addr
+	conn.send('BYE!')
+	conn.close()
+	s.close() 
+	sys.exit() 
+
+print 'Correct auth from: ' , addr
+conn.send('WELCOME!') 
+
+
 
 while 1: 
 	cdata = conn.recv(1024) 

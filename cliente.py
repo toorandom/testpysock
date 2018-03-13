@@ -1,6 +1,7 @@
 import socket as skt
 import sys
 import hashlib as hl
+import getpass
 from Crypto.Cipher import AES
 from Crypto import Random
 
@@ -25,18 +26,31 @@ def decrypt(key,cdata):
 if len(sys.argv) == 4:
 	host = sys.argv[1]
 	port = int(sys.argv[2])
-	auth = sys.argv[3]
-	up = auth.split(':')
-	user = up[0]
-	passwd = up[1]
+	user = sys.argv[3]
 else:
-	print 'Need to specify  <host> <port> <user:pass> '
+	print 'Need to specify  <host> <port> <username> '
 	sys.exit()
 
+
+passwd = getpass.getpass() 
+
+helo = 'HELOPROTOCOL'
+lh = len(helo)
+chelo = encrypt(user + passwd, helo.ljust(lh+16-(lh%16))) 
 
 s = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
 
 s.connect((host,port))
+
+s.send(chelo) 
+auth = s.recv(32)
+if auth[0:2] == 'WE': 
+	print 'Correct Authentication!' 
+else:
+	print 'Error in Authentication!'
+	s.close() 
+	sys.exit() 
+
 cmd =  '' 
 cbuf = ' ' 
 tbuf = ''
