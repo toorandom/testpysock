@@ -49,17 +49,15 @@ while 1 :
 		s.send(ecmd) 
 		try:
 			while 1:
-				cbuf = s.recv(100)
-				if  len(cbuf) == 100: 
-					tbuf = tbuf + cbuf
-				else:
-					tbuf = tbuf + cbuf
+				cbuf = s.recv(1024)
+				tbuf = tbuf + cbuf
+				if  len(cbuf) != 1024: 
 					break;
-			
-				buf = decrypt(user + passwd, tbuf) 
-				print buf
-				if 'BYE!' in buf:
-					s.close()
-					sys.exit()
+			buf = decrypt(user + passwd, tbuf) 
+			tbuf = ''
+			print buf
+			if 'BYE!' in buf:
+				s.close()
+				sys.exit()
 		except skt.timeout:
 			print 'No response after sending ' + '"' +  cmd + '"'

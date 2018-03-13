@@ -48,17 +48,15 @@ while 1:
 		conn.close() 
 		s.close() 
 		sys.exit()
-
 	pr = os.popen(data)
 	ln = pr.readlines()
 	buf = ''.join(ln)
-	hbuf = hl.sha384(buf).hexdigest() 
+	hbuf = hl.sha256(buf).hexdigest() 
 	msg = 'OutputHash is: ' + hbuf + '\n'
 	moment = time.ctime() + '\n\n'
 	tmsg = msg + moment + buf
 	tl = len(tmsg)
 	ctbuf = encrypt(user + passwd, tmsg.ljust(tl + 16-(tl%16))) 
-
 	conn.send(ctbuf) 
 	pr.close()
 	
